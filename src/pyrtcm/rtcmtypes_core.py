@@ -34,46 +34,18 @@ NMEA_HDR = [
     b"$W",
 ]
 UBX_HDR = b"\xb5\x62"
-"""UBX message header"""
 RTCM_HDR = b"\xd3"
-"""RTCM3 message header"""
-GET = 0
-"""GET (receive, response) message types"""
-SET = 1
-"""SET (command) message types"""
-POLL = 2
-"""POLL (query) message types"""
-SETPOLL = 3
-"""SETPOLL (SET or POLL) message types"""
-VALNONE = 0
-"""Do not validate checksum"""
-VALCKSUM = 1
-"""Validate checksum"""
 NMEA_PROTOCOL = 1
-"""NMEA Protocol"""
 UBX_PROTOCOL = 2
-"""UBX Protocol"""
 RTCM3_PROTOCOL = 4
-"""RTCM3 Protocol"""
+GET = 0
+SET = 1
+POLL = 2
+VALNONE = 0
+VALCKSUM = 1
 ERR_RAISE = 2
-"""Raise error and quit"""
 ERR_LOG = 1
-"""Log errors"""
 ERR_IGNORE = 0
-"""Ignore errors"""
-DEFAULT_BUFSIZE = 4096
-"""Default socket buffer size"""
-ENCODE_NONE = 0
-"""No socket encoding"""
-ENCODE_CHUNKED = 1
-"""chunked socket encoding"""
-ENCODE_GZIP = 2
-"""gzip socket encoding"""
-ENCODE_COMPRESS = 4
-"""compress socket encoding"""
-ENCODE_DEFLATE = 8
-"""deflate socket encoding"""
-
 NA = "N/A"
 
 NSAT = "NSat"
@@ -118,6 +90,7 @@ STR = "STR"  # concatenated UTF-8 string
 INT = "INT"  # 2’s complement integer
 UINT = "UINT"  # unsigned integer
 INTS = "SNT"  # sign-magnitude integer
+UTF = "UTF"  # Unicode UTF-8 Code Unit
 PRN = "PRN"  # Derived satellite PRN
 CELPRN = "CPR"  # Derived cell PRN
 CELSIG = "CSG"  # Derived cell Signal ID
@@ -153,7 +126,7 @@ RTCM_DATA_FIELDS = {
     "DF011": (UINT, 24, 0.02, "GPS L1 Pseudorange"),
     "DF012": (INT, 20, 0.0005, "GPS L1 PhaseRange - L1 Pseudorange"),
     "DF013": (UINT, 7, 0, "GPS L1 Lock Time Indicator"),
-    "DF014": (UINT, 8, 0, "GPS Integer L1 Pseudorange Modulus Ambiguity"),
+    "DF014": (UINT, 8, 0, "GPS INT,eger L1 Pseudorange Modulus Ambiguity"),
     "DF015": (UINT, 8, 0.25, "GPS L1 CNR"),
     "DF016": (BIT, 2, 0, "GPS L2 Code Indicator"),
     "DF017": (INT, 14, 0.02, "GPS L2-L1 Pseudorange Difference"),
@@ -183,12 +156,7 @@ RTCM_DATA_FIELDS = {
     "DF041": (UINT, 25, 0.02, "GLONASS L1 Pseudorange"),
     "DF042": (INT, 20, 0.0005, "GLONASS L1 PhaseRange - L1 Pseudorange"),
     "DF043": (UINT, 7, 0, "GLONASS L1 Lock Time Indicator"),
-    "DF044": (
-        UINT,
-        7,
-        0,
-        "GLONASS Integer L1 Pseudorange Modulus Ambiguity",
-    ),
+    "DF044": (UINT, 7, 0, "GLONASS Integer L1 Pseudorange Modulus Ambiguity"),
     "DF045": (UINT, 8, 0.25, "GLONASS L1 CNR"),
     "DF046": (BIT, 2, 0, "GLONASS L2 Code Indicator"),
     "DF047": (INT, 14, 0.02, "GLONASS L2-L1 Pseudorange Difference"),
@@ -220,82 +188,7 @@ RTCM_DATA_FIELDS = {
     "DF073": (UINT, 8, 0, "RESERVED for Provider ID"),
     "DF074": (BIT, 2, 0, "GPS Ambiguity Status Flag"),
     "DF075": (UINT, 3, 0, "GPS Non Sync Count"),
-    "DF076": (UINT, 10, 0, "GPS Week number"),
-    "DF077": (BIT, 4, 0, "GPS SV Acc. (URA)"),
-    "DF078": (BIT, 2, 1, "GPS CODE ON L2"),
-    "DF079": (INT, 14, P2_43, "GPS IDOT (Issue of Data, Time)"),  # see NOTICE 1 above
-    "DF080": (UINT, 8, 1, "GPS IODE (Issue of Data, Ephemeris)"),
-    "DF081": (UINT, 16, P2_P4, "GPS toc (Reference Time, Clock)"),
-    "DF082": (INT, 8, P2_55, "GPS af2 (Clock correction drift rate)"),
-    "DF083": (INT, 16, P2_43, "GPS af1 (Clock correction drift)"),
-    "DF084": (INT, 22, P2_31, "GPS af0 (Clock correction bias)"),
-    "DF085": (UINT, 10, 1, "GPS IODC (Issue of Data, Clock)"),
-    "DF086": (
-        INT,
-        16,
-        P2_5,
-        "GPS Crs (Amplitude of sine harmonic correction term to the orbit, radius)",
-    ),
-    "DF087": (
-        INT,
-        16,
-        P2_43,
-        "GPS ∆n (Mean motion difference from computed value)",
-    ),  # see NOTICE 1 above
-    "DF088": (INT, 32, P2_31, "GPS M0 (Mean Anomaly)"),  # see NOTICE 1 above
-    "DF089": (
-        INT,
-        16,
-        P2_29,
-        "GPS Cuc (Amplitude of cosine harmonic correction term to argument of latitude)",
-    ),
-    "DF090": (UINT, 32, P2_33, "GPS e (Eccentricity)"),
-    "DF091": (
-        INT,
-        16,
-        P2_29,
-        "GPS Cus (Amplitude of sine harmonic correction term to argument of latitude)",
-    ),
-    "DF092": (UINT, 32, P2_19, "GPS A½ (Square root of Semi-major Axis)"),
-    "DF093": (UINT, 16, P2_P4, "GPS toe (Reference Time, Ephemeris)"),
-    "DF094": (
-        INT,
-        16,
-        P2_29,
-        "GPS Cic (Amplitude of cosine harmonic correction term to angle of inclination)",
-    ),
-    "DF095": (
-        INT,
-        32,
-        P2_31,
-        "GPS Ω0 (Longitude of Ascending Node)",
-    ),  # see NOTICE 1 above
-    "DF096": (
-        INT,
-        16,
-        P2_29,
-        "GPS Cis (Amplitude of sine harmonic correction term to angle of inclination)",
-    ),
-    "DF097": (INT, 32, P2_31, "GPS i0 (Inclination)"),  # see NOTICE 1 above
-    "DF098": (
-        INT,
-        16,
-        P2_5,
-        "GPS Crc (Amplitude of cosine harmonic correction term to orbit,  radius)",
-    ),
-    "DF099": (INT, 32, P2_31, "GPS ω (Argument of Perigee)"),  # see NOTICE 1 above
-    "DF100": (
-        INT,
-        24,
-        P2_43,
-        "GPS ΩDOT (Rate of Change of Right Ascension)",
-    ),  # see NOTICE 1 above
-    "DF101": (INT, 8, P2_31, "GPS tGD"),
-    "DF102": (UINT, 6, 1, "GPS SV HEALTH"),
-    "DF103": (BIT, 1, 1, "GPS L2 P data flag"),
-    "DF104": (BIT, 1, 0, "GLONASS almanac health"),
-    "DF105": (BIT, 1, 0, "GLONASS almanac health availability indicator"),
-    "DF106": (BIT, 2, 0, "GLONASS P1"),
+    # ... existing code ...
     "DF107": (BIT, 12, 0, "GLONASS tk"),
     "DF108": (BIT, 1, 0, "GLONASS MSB of Bn word"),
     "DF109": (BIT, 1, 0, "GLONASS P2"),
@@ -346,63 +239,7 @@ RTCM_DATA_FIELDS = {
     "DF154": (UINT, 14, 2, "∆ΦV (Area of validity, NS extension"),
     "DF155": (UINT, 14, 2, "∆ΛV (Area of validity, EW extension"),
     "DF156": (INT, 23, 0.001, "dX (Translation in X"),
-    "DF157": (INT, 23, 0.001, "dY (Translation in Y)"),
-    "DF158": (INT, 23, 0.001, "dZ (Translation in Z)"),
-    "DF159": (INT, 32, 0.00002, "R1 (Rotation around X)"),
-    "DF160": (INT, 32, 0.00002, "R2 (Rotation around Y)"),
-    "DF161": (INT, 32, 0.00002, "R3 (Rotation around Z)"),
-    "DF162": (INT, 25, 0.00002, "dS (Scale correction)"),
-    "DF163": (INT, 35, 0.001, "XP (X-coord for Molodenski-Badekas rotation)"),
-    "DF164": (INT, 35, 0.001, "YP (Y-coord for Molodenski-Badekas rotation)"),
-    "DF165": (INT, 35, 0.001, "ZP (Z-coord for Molodenski-Badekas rotation)"),
-    "DF166": (UINT, 24, 0.001, "add aS"),
-    "DF167": (UINT, 25, 0.001, "add bS"),
-    "DF168": (UINT, 24, 0.001, "add aT"),
-    "DF169": (UINT, 25, 0.001, "add bT"),
-    "DF170": (UINT, 6, 0, "Projection Type"),
-    "DF171": (INT, 34, 0.000000011, "LaNO [°]"),
-    "DF172": (INT, 35, 0.000000011, "LoNO [°]"),
-    "DF173": (UINT, 30, 0.00001, "add SNO"),
-    "DF174": (UINT, 36, 0.001, "FE"),
-    "DF175": (INT, 35, 0.001, "FN"),
-    "DF176": (INT, 34, 0.000000011, "LaFO [°]"),
-    "DF177": (INT, 35, 0.000000011, "LoFO [°]"),
-    "DF178": (INT, 34, 0.000000011, "LaSP1 [°]"),
-    "DF179": (INT, 34, 0.000000011, "LaSP2 [°]"),
-    "DF180": (UINT, 36, 0.001, "EFO"),
-    "DF181": (INT, 35, 0.001, "NFO"),
-    "DF182": (BIT, 1, 0, "Rectification Flag"),
-    "DF183": (INT, 34, 0.000000011, "LaPC"),
-    "DF184": (INT, 35, 0.000000011, "LoPC"),
-    "DF185": (UINT, 35, 0.000000011, "AzIL"),
-    "DF186": (INT, 26, 0.000000011, "Diff ARSG"),
-    "DF187": (UINT, 30, 0.00001, "Add SIL"),
-    "DF188": (UINT, 36, 0.001, "EPC"),
-    "DF189": (INT, 35, 0.001, "NPC"),
-    "DF190": (BIT, 1, 0, "Horizontal Shift Indicator"),
-    "DF191": (BIT, 1, 0, "Vertical Shift Indicator"),
-    "DF192": (INT, 21, 0.5, "Φ0"),
-    "DF193": (INT, 22, 0.5, "Λ0"),
-    "DF194": (UINT, 12, 0.5, "∆φ"),
-    "DF195": (UINT, 12, 0.5, "∆λ"),
-    "DF196": (INT, 8, 0.001, "Mean ∆φ"),
-    "DF197": (INT, 8, 0.001, "Mean ∆λ"),
-    "DF198": (INT, 15, 0.01, "Mean ∆H"),
-    "DF199": (INT, 9, 0.00003, "δφi"),
-    "DF200": (INT, 9, 0.00003, "δλi"),
-    "DF201": (INT, 9, 0.001, "δhi"),
-    "DF202": (INT, 25, 10, "N0"),
-    "DF203": (UINT, 26, 10, "E0"),
-    "DF204": (UINT, 12, 10, "∆N"),
-    "DF205": (UINT, 12, 10, "∆E"),
-    "DF206": (INT, 10, 0.01, "Mean ∆N"),
-    "DF207": (INT, 10, 0.01, "Mean ∆E"),
-    "DF208": (INT, 15, 0.01, "Mean ∆h"),
-    "DF209": (INT, 9, 0.001, "δNi"),
-    "DF210": (INT, 9, 0.001, "δEi"),
-    "DF211": (INT, 9, 0.001, "δhi"),
-    "DF212": (UINT, 2, 0, "Horizontal Interpolation Method Indicator"),
-    "DF213": (UINT, 2, 0, "Vertical Interpolation Method Indicator"),
+    # ... existing code ...
     "DF214": (UINT, 3, 0, "Horizontal Helmert/Molodenski Quality Indicator"),
     "DF215": (UINT, 3, 0, "Vertical Helmert/Molodenski Quality Indicator"),
     "DF216": (UINT, 3, 0, "Horizontal Grid Quality Indicator"),
@@ -426,12 +263,7 @@ RTCM_DATA_FIELDS = {
     "DF234": (UINT, 4, 0, "Number of GLONASS Data Entries"),
     "DF235": (BIT, 2, 0, "GLONASS Ambiguity Status Flag"),
     "DF236": (UINT, 3, 0, "GLONASS Non Sync Count"),
-    "DF237": (
-        INT,
-        17,
-        0.5,
-        "GLONASS Ionospheric Carrier Phase Correction Difference",
-    ),
+    "DF237": (INT, 17, 0.5, "GLONASS Ionospheric Carrier Phase Correction Difference"),
     "DF238": (INT, 17, 0.5, "GLONASS Geometric Carrier Phase Correction Difference"),
     "DF239": (BIT, 8, 0, "GLONASS IOD"),
     "DF240": (UINT, 20, 1, "GPS FKP Epoch Time"),
@@ -502,125 +334,7 @@ RTCM_DATA_FIELDS = {
     "DF387": (UINT, 6, 1, "No. of Satellites"),
     "DF388": (BIT, 1, 1, "Multiple Message Indicator"),
     "DF389": (BIT, 6, 0, "SSR URA"),
-    "DF390": (INT, 22, 0.1, "High Rate Clock Correction"),
-    "DF391": (BIT, 4, 1, "SSR Update Interval"),
-    "DF392": (BIT, 8, 0, "GLONASS Issue Of Data (IOD)"),
-    "DF393": (BIT, 1, 0, "MSM Multiple message bit"),
-    "DF394": (BIT, 64, 0, "GNSS Satellite mask"),
-    "DF395": (BIT, 32, 0, "GNSS Signal mask"),
-    "DF396": (BITX, 0, 0, "GNSS Cell mask"),
-    "DF397": (
-        UINT,
-        8,
-        1,
-        "The number of integer milliseconds in GNSS Satellite rough range",
-    ),
-    "DF398": (UINT, 10, P2_10, "GNSS Satellite rough range modulo 1 millisecond"),
-    "DF399": (INT, 14, 1, "GNSS Satellite rough Phase Range Rate"),
-    "DF400": (INT, 15, P2_24, "GNSS signal fine Pseudorange"),
-    "DF401": (INT, 22, P2_29, "GNSS signal fine PhaseRange data"),
-    "DF402": (UINT, 4, 0, "GNSS PhaseRange Lock Time Indicator"),
-    "DF403": (UINT, 6, 1, "GNSS signal CNR"),
-    "DF404": (INT, 15, 0.0001, "GNSS signal fine Phase Range Rate"),
-    "DF405": (
-        INT,
-        20,
-        P2_29,
-        "GNSS signal fine Pseudorange with extended resolution",
-    ),
-    "DF406": (
-        INT,
-        24,
-        P2_31,
-        "GNSS signal fine PhaseRange data with extended resolution",
-    ),
-    "DF407": (
-        UINT,
-        10,
-        0,
-        "GNSS PhaseRange Lock Time Indicator with extended range and resolution.",
-    ),
-    "DF408": (UINT, 10, P2_4, "GNSS signal CNR with extended resolution"),
-    "DF409": (UINT, 3, 1, "IODS - Issue Of Data Station"),
-    # 'DF410': RESERVED,
-    "DF411": (UINT, 2, 0, "Clock Steering Indicator"),
-    "DF412": (UINT, 2, 0, "External Clock Indicator"),
-    "DF413": (UINT, 4, 1, "IOD SSR"),
-    "DF414": (UINT, 16, 1, "SSR Provider ID"),
-    "DF415": (UINT, 4, 1, "SSR Solution ID"),
-    "DF416": (UINT, 3, 1, "GLONASS Day Of Week"),
-    "DF417": (BIT, 1, 0, "GNSS Smoothing Type Indicator"),
-    "DF418": (BIT, 3, 0, "GNSS Smoothing Interval"),
-    "DF419": (UINT, 4, 1, "GLONASS Satellite Frequency Channel Number"),
-    "DF420": (BIT, 1, 0, "Half-cycle ambiguity indicator"),
-    "DF421": (BIT, 1, 0, "GLONASS Code-Phase Bias Indicator"),
-    "DF422_1": (BIT, 1, 0, "GLONASS FDMA Signals Mask L1 C/A"),
-    "DF422_2": (BIT, 1, 0, "GLONASS FDMA Signals Mask L1 P"),
-    "DF422_3": (BIT, 1, 0, "GLONASS FDMA Signals Mask L2 C/A"),
-    "DF422_4": (BIT, 1, 0, "GLONASS FDMA Signals Mask L2 P"),
-    "DF423": (INT, 16, 0.02, "GLONASS L1 C/A Code-Phase Bias"),
-    "DF424": (INT, 16, 0.02, "GLONASS L1 P Code-Phase Bias"),
-    "DF425": (INT, 16, 0.02, "GLONASS L2 C/A Code-Phase Bias"),
-    "DF426": (INT, 16, 0.02, "GLONASS L2 P Code-Phase Bias"),
-    "DF427": (UINT, 30, 1, "BeiDou Epoch Time (TOW)"),
-    "DF428": (UINT, 30, 1, "QZSS Epoch Time (TOW)"),
-    "DF429": (UINT, 4, 1, "QZSS Satellite ID"),
-    "DF430": (UINT, 16, P2_P4, "QZSS toc"),
-    "DF431": (INT, 8, P2_55, "QZSS af2"),
-    "DF432": (INT, 16, P2_43, "QZSS af1"),
-    "DF433": (INT, 22, P2_31, "QZSS af0"),
-    "DF434": (UINT, 8, 1, "QZSS IODE"),
-    "DF435": (INT, 16, P2_5, "QZSS Crs"),
-    "DF436": (INT, 16, P2_43, "QZSS ∆n"),
-    "DF437": (INT, 32, P2_31, "QZSS M0"),
-    "DF438": (INT, 16, P2_29, "QZSS Cuc"),
-    "DF439": (UINT, 32, P2_33, "QZSS e"),
-    "DF440": (INT, 16, P2_29, "QZSS Cus"),
-    "DF441": (UINT, 32, P2_19, "QZSS A½"),
-    "DF442": (UINT, 16, P2_P4, "QZSS toe"),
-    "DF443": (INT, 16, P2_29, "QZSS Cic"),
-    "DF444": (INT, 32, P2_31, "QZSS Ω0"),
-    "DF445": (INT, 16, P2_29, "QZSS Cis"),
-    "DF446": (INT, 32, P2_31, "QZSS i0"),
-    "DF447": (INT, 16, P2_5, "QZSS Crc"),
-    "DF448": (INT, 32, P2_31, "QZSS ω (Argument of Perigee)"),
-    "DF449": (INT, 24, P2_43, "QZSS ΩDOT (Rate of Right Ascension)"),
-    "DF450": (INT, 14, P2_43, "QZSS i0-DOT"),
-    "DF451": (BIT, 2, 1, "QZSS Codes on L2 Channel"),
-    "DF452": (UINT, 10, 1, "QZSS Week Number"),
-    "DF453": (UINT, 4, 0, "QZSS URA"),
-    "DF454": (UINT, 6, 1, "QZSS SV health"),
-    "DF455": (INT, 8, P2_31, "QZSS TGD"),
-    "DF456": (UINT, 10, 1, "QZSS IODC"),
-    "DF457": (BIT, 1, 1, "QZSS Fit Interval"),
-    "DF488": (UINT, 6, 0, "BDS Satellite ID"),
-    "DF489": (UINT, 13, 1, "BDS Week Number"),
-    "DF490": (BIT, 4, 1, "BDS URAI"),
-    "DF491": (INT, 14, P2_43, "BDS IDOT"),
-    "DF492": (UINT, 5, 1, "BDS AODE"),
-    "DF493": (UINT, 17, 8, "BDS Toc"),
-    "DF494": (INT, 11, P2_66, "BDS a2"),
-    "DF495": (INT, 22, P2_50, "BDS a1"),
-    "DF496": (INT, 24, P2_33, "BSD a0"),
-    "DF497": (UINT, 5, 1, "BDS AODC"),
-    "DF498": (INT, 18, P2_6, "BDS Crs"),
-    "DF499": (INT, 16, P2_43, "BDS ∆n"),
-    "DF500": (INT, 32, P2_31, "BDS M0"),
-    "DF501": (INT, 18, P2_31, "BDS Cuc"),
-    "DF502": (UINT, 32, P2_33, "BDS e (Eccentricity)"),
-    "DF503": (INT, 18, P2_31, "BDS Cus"),
-    "DF504": (UINT, 32, P2_19, "BDS A½"),
-    "DF505": (UINT, 17, 8, "BDS Toe"),
-    "DF506": (INT, 18, P2_31, "BDS Cic"),
-    "DF507": (INT, 32, P2_31, "BDS Ω0"),
-    "DF508": (INT, 18, P2_31, "BDS Cis"),
-    "DF509": (INT, 32, P2_31, "BDS i0"),
-    "DF510": (INT, 18, P2_6, "BDS Crc"),
-    "DF511": (INT, 32, P2_31, "BDS ω (Argument of Perigee)"),
-    "DF512": (INT, 24, P2_43, "BDS ΩDOT (Rate of Right Ascension)"),
-    "DF513": (INT, 10, 0.1, "BDS TGD1"),
-    "DF514": (INT, 10, 0.1, "BDS TGD2"),
-    "DF515": (BIT, 1, 1, "BSD SV Health"),
+    # ... existing code ...
     "DF516": (UINT, 6, 1, "NAVIC/IRNSS Satellite ID"),
     "DF517": (UINT, 10, 1, "NAVIC/IRNSS Week Number (WN)"),
     "DF518": (INT, 22, P2_31, "NAVIC/IRNSS Clock Bias (af0)"),
@@ -661,51 +375,7 @@ RTCM_DATA_FIELDS = {
     "DF553": (INT, 32, 0.00002, "R03 Rotation about Z for Reference Epoch"),
     "DF554": (INT, 25, 0.00001, "dS0 Scale Correction for Reference Epoch"),
     "DF555": (INT, 17, 0.00002, "dot dX Rate of Change of Translation in X"),
-    "DF556": (INT, 17, 0.00002, "dot dY Rate of Change of Translation in X"),
-    "DF557": (INT, 17, 0.00002, "dot dZ Rate of Change of Translation in X"),
-    "DF558": (INT, 17, 0.0000004, "dot R1 Rate of Change of Rotation about X"),
-    "DF559": (INT, 17, 0.0000004, "dot R2 Rate of Change of Rotation about Y"),
-    "DF560": (INT, 17, 0.0000004, "dot R3 Rate of Change of Rotation about Z"),
-    "DF561": (INT, 14, 0.0000002, "dot dS Rate of Change of Scale Correction"),
-    "DF562": (UINT, 5, 0, "Service CRS Name Counter"),
-    "DF563": (STR, 8, 0, "Service CRS Name"),
-    "DF564": (UINT, 16, 0.01, "Coordinate Epoch CE"),
-    "DF565": (UINT, 5, 0, "RTCM CRS Name Counter"),
-    "DF566": (STR, 8, 0, "RTCM CRS Name"),
-    "DF567": (BIT, 1, 0, "Anchor - Global/Plate Fixed Indicator"),
-    "DF568": (UINT, 3, 1, "Number of Database Links"),
-    "DF569": (UINT, 5, 0, "Database Link Counter"),
-    "DF570": (STR, 8, 0, "Database Link Name"),
-    "DF571": (UINT, 20, 1, "Beidou Residuals Epoch Time TOW"),
-    "DF572": (UINT, 5, 0, "Beidou Number of Satellite Signals Processed"),
-    "DF573": (UINT, 20, 1, "Galileo Residuals Epoch Time TOW"),
-    "DF574": (UINT, 5, 0, "Galileo Number of Satellite Signals Processed"),
-    "DF575": (UINT, 20, 1, "QZSS Residuals Epoch Time TOW"),
-    "DF576": (UINT, 5, 0, "QZSS Number of Satellite Signals Processed"),
-    "ExtSatInfo": (UINT, 4, 0, "Extended Satellite Information"),
-    # IGS SSR data types, used in 4076 messages
-    # https://files.igs.org/pub/data/format/igs_ssr_v1.pdf
-    "IDF001": (UINT, 3, 1, "IGM/IM Version"),
-    "IDF002": (UINT, 8, 1, "IGS Message Number"),
-    "IDF003": (UINT, 20, 1, "SSR Epoch Time 1s"),
-    "IDF004": (BIT, 4, 1, "SSR Update Interval"),
-    "IDF005": (BIT, 1, 1, "SSR Multiple Message Indicator"),
-    "IDF006": (BIT, 1, 1, "Global/Regional CRS Indicator"),
-    "IDF007": (UINT, 4, 1, "IOD SSR"),
-    "IDF008": (UINT, 16, 1, "SSR Provider ID"),
-    "IDF009": (UINT, 4, 1, "SSR Solution ID"),
-    "IDF010": (UINT, 6, 1, "No. of Satellites"),
-    "IDF011": (UINT, 6, 1, "GNSS Satellite ID"),
-    "IDF012": (BIT, 8, 1, "GNSS IOD"),
-    "IDF013": (INT, 22, 0.1, "Delta Orbit Radial"),
-    "IDF014": (INT, 20, 0.4, "Delta Orbit Along-Track"),
-    "IDF015": (INT, 20, 0.4, "Delta Orbit Cross-Track"),
-    "IDF016": (INT, 21, 0.001, "Dot Orbit Delta Radial"),
-    "IDF017": (INT, 19, 0.004, "Dot Orbit Delta Along-Track"),
-    "IDF018": (INT, 19, 0.004, "Dot Orbit Delta Cross-Track"),
-    "IDF019": (INT, 22, 0.1, "Delta Clock C0"),
-    "IDF020": (INT, 21, 0.001, "Delta Clock C1"),
-    "IDF021": (INT, 27, 0.00002, "Delta Clock C2"),
+    # ... existing code ...
     "IDF022": (INT, 22, 0.1, "High Rate Clock Correction"),
     "IDF023": (UINT, 5, 1, "No. of Biases Processed"),
     "IDF024": (UINT, 5, 1, "GNSS Signal and Tracking Mode Identifier"),
@@ -849,56 +519,32 @@ RTCM_MSGIDS = {
     "1128": "Reserved MSM",
     "1129": "Reserved MSM",
     "1130": "Reserved MSM",
-    "1131": "NavIC/IRNSS MSM1",
-    "1132": "NavIC/IRNSS MSM2",
-    "1133": "NavIC/IRNSS MSM3",
-    "1134": "NavIC/IRNSS MSM4",
-    "1135": "NavIC/IRNSS MSM5",
-    "1136": "NavIC/IRNSS MSM6",
-    "1137": "NavIC/IRNSS MSM7",
+    "1131": "IRNSS MSM1",
+    "1132": "IRNSS MSM2",
+    "1133": "IRNSS MSM3",
+    "1134": "IRNSS MSM4",
+    "1135": "IRNSS MSM5",
+    "1136": "IRNSS MSM6",
+    "1137": "IRNSS MSM7",
     # "1138-1229":"Reserved MSM",
     "1230": "GLONASS L1 and L2 Code-Phase Biases",
-    "1300": "Service CRS",
-    "1301": "Parameter Transformation 15",
-    "1302": "RTCM CRS",
-    "1303": "Beidou RTK Residuals",
-    "1304": "Galileo RTK Residuals",
-    "1305": "QZSS RTK Residuals",
+    "1242": "Galileo SSR Satellite Code Bias",
+    "1243": "Galileo SSR Combined Orbit and Clock Correction",
+    "1260": "BDS SSR Satellite Code Bias",
+    "1261": "BDS SSR Combined Orbit and Clock Correction",
+    "1265": "GPS SSR Satellite Phase Bias",
+    "1267": "Galileo SSR Satellite Phase Bias",
+    "1270": "BDS SSR Satellite Phase Bias",
     # "1240-1263": "SSR Messages"
     #
     # NB: Only those proprietary messages with public
     # domain definitions have been implemented.
     #
-    # "4001-4095": "Proprietary Messages",
-    # "4048": "Point One Navigation",
-    # "4049": "CM Intelligenc Mobility Network Co Ltd",
-    # "4050": "STMicroelectronics SRL",
-    # "4051": "Hi-Target",
-    # "4052": "Furuno Electric Co Ltd",
-    # "4053": "Qualcomm Technologies Inc",
-    # "4054": "GEODNET",
-    # "4055": "Korea Research Institute KRISO",
-    # "4056": "China Dayou Positioning Intelligence",
-    # "4057": "Sixents Technology",
-    # "4058": "Anello Photonics",
-    # "4059": "Natural Resources Canada",
-    # "4060": "ALES Corp",
-    # "4061": "Zhejiang GeeSpace Technology Co Ltd",
-    # "4062": "Swift Navigation Inc",
-    # "4063": "CHCNAV",
-    # "4064": "NTLab",
-    # "4065": "Allystar",
-    # "4066": "Lantmäteriet",
-    # "4067": "China Transport Telecoms and Information Centre",
-    # "4068": "Qianxun Spatial Intelligence Inc",
-    # "4069": "Veripos Ltd",
-    # "4070": "Wuhan MengXin Technology",
-    # "4071": "Wuhan Navigation and LBS",
-    # "4072": "u-blox AG",
-    # "4073": "Mitsubishi Electric Corp",
-    # "4074": "Unicore Communications Inc",
+    # "4001-4095":"Proprietary Messages",
+    # "4072": "Mitsubishi Electric Corp",
+    # "4073": "Unicore Communications Inc",
     # "4075": "Alberding GmbH",
-    # "4076": "International GNSS Service (IGS)",
+    # "4076": "INT,ernational GNSS Service (IGS)",
     "4076_021": "GPS SSR OrBIT,  Correction",
     "4076_022": "GPS SSR Clock Correction",
     "4076_023": "GPS SSR Combined OrBIT,  and Clock Correction",
@@ -968,7 +614,7 @@ RTCM_MSGIDS = {
     # "4092": "Leica Geosystems",
     # "4093": "NovAtel Inc.",
     # "4094": "Trimble Navigation Ltd.",
-    # "4095": "Spectra Geospatial",
+    # "4095": "Ashtech",
 }
 
 # map of MSM msg identity to GNSS name, epoch attribute name
